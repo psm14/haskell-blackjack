@@ -66,8 +66,7 @@ randShuffle deck = newStdGen >>= doShuffle deck
   where doShuffle deck gen = return $ shuffle deck gen
 
 infiniteDeck :: RandomGen gen => Deck -> gen -> Deck
---infiniteDeck deck gen = (shuffle deck gen) ++ (infiniteDeck deck (snd $ split gen))
-infiniteDeck deck gen = concat (repeatingDecks deck gen)
+infiniteDeck deck gen = concat $ repeatingDecks deck gen
   where repeatingDecks deck gen = (shuffle deck gen) : (repeatingDecks deck (snd $ split gen))
 
 randInfShuffle :: Deck -> IO Deck
