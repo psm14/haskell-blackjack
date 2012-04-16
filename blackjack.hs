@@ -73,8 +73,8 @@ cardTotal n = case n of
 
 instance Monoid HandValue where
   mempty  = HandValue Hard 0
-  mappend (HandValue Soft m) (HandValue t n)    = if (m+n <= 21) then HandValue Soft (m+n) else HandValue t (m+n - 10) 
-  mappend (HandValue t m) (HandValue Soft n)    = if (m+n <= 21) then HandValue Soft (m+n) else HandValue t (m+n - 10)
+  mappend (HandValue Soft m) (HandValue t n)    = if (m+n <= 21) then HandValue Soft (m+n) else mappend (HandValue Hard (m-10)) (HandValue t n) 
+  mappend (HandValue t m) (HandValue Soft n)    = if (m+n <= 21) then HandValue Soft (m+n) else mappend (HandValue t m) (HandValue Hard (n-10))
   mappend (HandValue Hard m) (HandValue Hard n) = if (m+n <= 21) then HandValue Hard (m+n) else HandValue Bust (m+n)
   mappend (HandValue Bust m) (HandValue Hard n) = HandValue Bust (m+n)
   mappend (HandValue Hard m) (HandValue Bust n) = HandValue Bust (m+n)
