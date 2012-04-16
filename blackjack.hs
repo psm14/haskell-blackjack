@@ -1,6 +1,8 @@
 import System.Random.Shuffle (shuffle')
-import System.Random (RandomGen, newStdGen)
+import System.Random (RandomGen, newStdGen, split)
 import Data.Monoid
+import Control.Monad.State
+import Control.Monad.Identity
 
 data Suit = Clubs
           | Hearts
@@ -26,7 +28,6 @@ data Rank = Ace
 data Card = Card Rank Suit
      deriving (Show, Read, Eq, Ord)
 
-type HoleCard = Card
 type Deck = [Card]
 type Hand = [Card]
 
@@ -41,6 +42,14 @@ data HandStatus = Hard
 data HandValue = HandValue HandStatus Int
      deriving (Show, Read, Eq)
 
+-- Note that this only is well-defined for hand values that are valid in BlackJack (i.e Using a Soft 2 or a Bust 10 will have strange behavior)
+instance Monoid HandValue where
+  mempty  = HandValue Hard 0
+  mappend (HandValue Soft m) (HandValue t n)    = if (m+n <= 21) then HandValue Soft (m+n) else mappend (HandValue Hard (m-10)) (HandValue t n) 
+  mappend (HandValue t m) (HandValue Soft n)    = mappend (HandValue Soft n) (HandValue t m)
+  mappend (HandValue Hard m) (HandValue Hard n) = if (m+n <= 21) then HandValue Hard (m+n) else HandValue Bust (m+n)
+  mappend (HandValue t m) (HandValue u n)       = HandValue Bust (m+n)
+
 stdDeck :: Deck
 stdDeck = [Card r s | r <- [Ace .. King], s <- [Clubs .. Diamonds]]
 
@@ -54,6 +63,15 @@ shuffle deck gen = shuffle' deck (length deck) gen
 randShuffle :: Deck -> IO Deck
 randShuffle deck = newStdGen >>= doShuffle deck
   where doShuffle deck gen = return $ shuffle deck gen
+
+infiniteDeck :: RandomGen gen => Deck -> gen -> Deck
+--infiniteDeck deck gen = (shuffle deck gen) ++ (infiniteDeck deck (snd $ split gen))
+infiniteDeck deck gen = concat (repeatingDecks deck gen)
+  where repeatingDecks deck gen = (shuffle deck gen) : (repeatingDecks deck (snd $ split gen))
+
+randInfShuffle :: Deck -> IO Deck
+randInfShuffle deck = newStdGen >>= doShuffle deck
+  where doShuffle deck gen = return $ infiniteDeck deck gen
 
 cardTotal :: Card -> HandValue
 cardTotal n = case n of
@@ -71,10 +89,10 @@ cardTotal n = case n of
                 Card Queen _ -> HandValue Hard 10
                 Card King _  -> HandValue Hard 10
 
-instance Monoid HandValue where
-  mempty  = HandValue Hard 0
-  mappend (HandValue Soft m) (HandValue t n)    = if (m+n <= 21) then HandValue Soft (m+n) else mappend (HandValue Hard (m-10)) (HandValue t n) 
-  mappend (HandValue t m) (HandValue Soft n)    = if (m+n <= 21) then HandValue Soft (m+n) else mappend (HandValue t m) (HandValue Hard (n-10))
-  mappend (HandValue Hard m) (HandValue Hard n) = if (m+n <= 21) then HandValue Hard (m+n) else HandValue Bust (m+n)
-  mappend (HandValue Bust m) (HandValue Hard n) = HandValue Bust (m+n)
-  mappend (HandValue Hard m) (HandValue Bust n) = HandValue Bust (m+n)
+handTotal :: Hand -> HandValue
+handTotal = mconcat . (map cardTotal)
+
+dealCard :: State Deck Card
+dealCard = get >>= \d -> putBack d >> (return $ topCard d)
+  where putBack d = put $ drop 1 d
+        topCard d = head d
