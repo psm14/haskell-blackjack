@@ -1,8 +1,9 @@
 import System.Random.Shuffle (shuffle')
 import System.Random (RandomGen, newStdGen, split)
 import Data.Monoid
-import Control.Monad.State
 import Control.Monad.Identity
+import Control.Monad.Trans
+import Control.Monad.State
 
 data Suit = Clubs
           | Hearts
@@ -75,24 +76,63 @@ randInfShuffle deck = newStdGen >>= doShuffle deck
 
 cardTotal :: Card -> HandValue
 cardTotal n = case n of
-                Card Ace _   -> HandValue Soft 11
-                Card Two _   -> HandValue Hard 2
-                Card Three _ -> HandValue Hard 3
-                Card Four _  -> HandValue Hard 4
-                Card Five _  -> HandValue Hard 5
-                Card Six _   -> HandValue Hard 6
-                Card Seven _ -> HandValue Hard 7
-                Card Eight _ -> HandValue Hard 8
-                Card Nine _  -> HandValue Hard 9
-                Card Ten _   -> HandValue Hard 10
-                Card Jack _  -> HandValue Hard 10
-                Card Queen _ -> HandValue Hard 10
-                Card King _  -> HandValue Hard 10
+  Card Two _   -> HandValue Hard 2
+  Card Three _ -> HandValue Hard 3
+  Card Four _  -> HandValue Hard 4
+  Card Five _  -> HandValue Hard 5
+  Card Six _   -> HandValue Hard 6
+  Card Seven _ -> HandValue Hard 7
+  Card Eight _ -> HandValue Hard 8
+  Card Nine _  -> HandValue Hard 9
+  Card Ten _   -> HandValue Hard 10
+  Card Jack _  -> HandValue Hard 10
+  Card Queen _ -> HandValue Hard 10
+  Card King _  -> HandValue Hard 10
+  Card Ace _   -> HandValue Soft 11
 
 handTotal :: Hand -> HandValue
 handTotal = mconcat . (map cardTotal)
 
-dealCard :: State Deck Card
-dealCard = get >>= \d -> putBack d >> (return $ topCard d)
-  where putBack d = put $ drop 1 d
-        topCard d = head d
+type ShoeT m a = StateT Deck m a
+
+runShoeT :: ShoeT m a -> Deck -> m (a, Deck)
+runShoeT = runStateT
+
+deal :: (Monad m) => ShoeT m Card
+deal = do
+  d <- get
+  put $ tail d
+  return $ head d
+
+foobar :: ShoeT Identity ()
+foobar = return ()
+
+foobat :: ShoeT IO ()
+foobat = return ()
+
+type HiLoCount = Int
+
+hiLoValue :: Card -> HiLoCount
+hiLoValue n = case n of
+  Card Two _   -> -1
+  Card Three _ -> -1
+  Card Four _  -> -1
+  Card Five _  -> -1
+  Card Six _   -> -1
+  Card Seven _ -> 0
+  Card Eight _ -> 0
+  Card Nine _  -> 0
+  Card Ten _   -> 1
+  Card Jack _  -> 1
+  Card Queen _ -> 1
+  Card King _  -> 1
+  Card Ace _   -> 1
+
+hiLoTotal :: [Card] -> HiLoCount
+hiLoTotal = reduce' . map'
+  where map'    = map hiLoValue
+        reduce' = sum
+
+main = do
+  n <- liftM (hiLoTotal . take 1000000) $ randInfShuffle (multiDeck 6)
+  putStrLn $ show n
