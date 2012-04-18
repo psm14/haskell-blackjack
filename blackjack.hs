@@ -1,6 +1,7 @@
 import System.Random.Shuffle (shuffle')
 import System.Random (RandomGen, newStdGen, split)
 import Data.Monoid
+import Data.List
 import Control.Monad.Identity
 import Control.Monad.Trans
 import Control.Monad.State
@@ -48,6 +49,7 @@ randShuffle deck = newStdGen >>= doShuffle deck
 infiniteDeck :: RandomGen gen => Deck -> gen -> Deck
 infiniteDeck deck gen = concat $ repeatingDecks deck gen
   where repeatingDecks deck gen = (shuffle deck gen) : (repeatingDecks deck (snd $ split gen))
+--infiniteDeck deck gen = (shuffle deck gen) ++ (infiniteDeck deck gen)
 
 randInfShuffle :: Deck -> IO Deck
 randInfShuffle deck = newStdGen >>= doShuffle deck
@@ -103,6 +105,10 @@ hand' :: [Card] -> Hand
 hand' cs = Hand (checkDone $ handTotal cs) cs
   where checkDone (HandValue Bust _) = Done
         checkDone _                  = Play
+
+handDone :: Hand -> Bool
+handDone (Hand Done _) = True
+handDone _             = False
 
 data Game = Game Hand [Hand]
 
@@ -187,6 +193,58 @@ playDealer strat (Game hand hs) = do
   hand' <- play' (strat hand) hand
   playDealer strat (Game hand' hs)
 
+-- TEST CODE, player strategies will eventually be at least (Game -> Action) with the count factoring in somewhere
+playStep :: (Hand -> Action) -> Hand -> State Deck [Hand]
+playStep strat (Hand Done h) = return [Hand Done h]
+playStep strat h = play (strat h) h
+
+allPlayersDone :: [Hand] -> Bool
+allPlayersDone = all handDone 
+
+allPlayersDone' :: Game -> Bool
+allPlayersDone' (Game _ hs) = allPlayersDone hs
+
+sheet :: (Hand -> State Deck [Hand]) -> [Hand] -> State Deck [Hand]
+sheet f hs = let
+  mapped  = fmap f hs
+  reduced = sequence mapped
+  in liftM concat reduced
+
+playPlayers :: (Hand -> Action) -> Game -> State Deck Game
+playPlayers strat (Game d hs) = if (allPlayersDone hs == False) then do 
+                                  hs' <- sheet (playStep strat) hs
+                                  playPlayers strat (Game d hs')
+                                else 
+                                  return $ Game d hs
+
+playGame :: (Hand -> Action) -> Game -> State Deck Game
+playGame strat g = (playPlayers strat g) >>= (playDealer strat)
+
+dealAndPlay :: Int -> (Hand -> Action) -> State Deck Game
+dealAndPlay p strat = (newGame' p) >>= (playGame strat)
+
+allTotals :: Game -> (HandValue, [HandValue])
+allTotals (Game d hs) = let
+  dtot = handTotal' d
+  ptot = fmap handTotal' hs
+  in (dtot, ptot)
+
+--main :: IO ()
+--main = do
+--  deck <- randShuffle $ multiDeck 6
+--  (game, _) <- return $ runState (dealAndPlay 10 dealerStrategy) deck
+--  putStrLn $ show game
+--  putStrLn . show $ allTotals game
+
+hiLoAdd :: Card -> HiLoCount -> HiLoCount
+hiLoAdd c a = a + (hiLoValue c)
+
+main :: IO ()
+main = do
+  deck <- randInfShuffle (multiDeck 6)
+  putStrLn $ show (hiLoTotal' (take 10000000 deck)) 
+
+
 type HiLoCount = Int
 
 hiLoValue :: Card -> HiLoCount
@@ -204,6 +262,12 @@ hiLoValue n = case n of
   Card Queen _ -> -1
   Card King _  -> -1
   Card Ace _   -> -1
+
+hiLoSum :: HiLoCount -> Card -> HiLoCount
+hiLoSum a b = a + (hiLoValue b)
+
+hiLoTotal' :: [Card] -> HiLoCount
+hiLoTotal' cs = foldl' hiLoSum 0 cs 
 
 hiLoTotal :: [Card] -> HiLoCount
 hiLoTotal = reduce' . map'
