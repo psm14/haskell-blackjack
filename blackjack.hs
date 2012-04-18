@@ -115,20 +115,16 @@ deal' n = get >>= \d -> (put $ drop n d) >> (return $ take n d)
 deal :: State Deck Card
 deal = liftM head $ deal' 1
 
-newGame :: State Deck Game
-newGame = do
-  [d_holeCard, p_firstCard, d_upCard, p_secondCard] <- deal' 4
-  dealer <- return $ hand' [d_holeCard,  d_upCard]
-  player <- return $ hand' [p_firstCard, p_secondCard]
-  return $ Game dealer [player]
-
 newGame' :: Int -> State Deck Game
 newGame' n = do
-  roundOne <- deal' n
-  roundTwo <- deal' n
+  roundOne <- deal' (n+1)
+  roundTwo <- deal' (n+1)
   dealer   <- return $ hand' [(head roundOne), (head roundTwo)]
   players  <- return $ zipWith (\a b -> hand' [a,b]) (tail roundOne) (tail roundTwo)
   return $ Game dealer players
+
+newGame :: State Deck Game
+newGame = newGame' 1
 
 doHit :: Hand -> State Deck [Hand]
 doHit (Hand Play hs) = deal >>= (\c -> return $ [hand' (hs ++ [c])])
