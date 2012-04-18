@@ -152,6 +152,23 @@ newGame' n = do
   players  <- return $ zipWith (\a b -> hand' [a,b]) (tail roundOne) (tail roundTwo)
   return $ Game dealer players
 
+doHit :: Hand -> State Deck [Hand]
+doHit (Hand Play hs) = deal >>= (\c -> return $ [hand' (hs ++ [c])])
+doHit _ = undefined
+
+doStand :: Hand -> State Deck [Hand]
+doStand (Hand Play h) = return $ [Hand Done h]
+doStand _ = undefined
+
+doDouble :: Hand -> State Deck [Hand]
+doDouble (Hand Play hs) = deal >>= (\c -> return $ [Hand Done (hs ++ [c])])
+
+doSplit :: Hand -> State Deck [Hand]
+doSplit (Hand Play [one, two]) = do
+  [one', two'] <- deal' 2
+  return $ [hand' [one, one'], hand' [two, two']]
+doSplit _ = undefined
+
 data Action = Hit
             | Stand
             | Double
@@ -173,17 +190,6 @@ dealerStrategy h = case (handTotal' h) of
   HandValue Hard 20 -> Stand
   HandValue Hard 21 -> Stand
   HandValue Hard _  -> Hit
-
-doHit :: Hand -> State Deck [Hand]
-doHit (Hand Play hs) = deal >>= (\c -> return $ [hand' (hs ++ [c])])
-doHit _ = undefined
-
-doStand :: Hand -> State Deck [Hand]
-doStand (Hand Play h) = return $ [Hand Done h]
-doStand _ = undefined
-
---doDouble :: Hand -> State Deck [Hand]
---doDouble h = 
 
 --play :: Action -> Hand -> State Deck [Hand]
 --play a = case a of
