@@ -89,25 +89,25 @@ cardTotal n = case n of
   Card King _  -> HandValue Hard 10
   Card Ace _   -> HandValue Soft 11
 
-handTotal :: Hand -> HandValue
+handTotal :: [Card] -> HandValue
 handTotal = mconcat . (map cardTotal)
 
-type ShoeT m a = StateT Deck m a
+--type ShoeT m a = StateT Deck m a
 
-runShoeT :: ShoeT m a -> Deck -> m (a, Deck)
-runShoeT = runStateT
+--runShoeT :: ShoeT m a -> Deck -> m (a, Deck)
+--runShoeT = runStateT
 
-deal :: (Monad m) => ShoeT m Card
-deal = do
-  d <- get
-  put $ tail d
-  return $ head d
+--deal :: (Monad m) => ShoeT m Card
+--deal = do
+--  d <- get
+--  put $ tail d
+--  return $ head d
 
-foobar :: ShoeT Identity ()
-foobar = return ()
+--foobar :: ShoeT Identity ()
+--foobar = return ()
 
-foobat :: ShoeT IO ()
-foobat = return ()
+--foobat :: ShoeT IO ()
+--foobat = return ()
 
 type HiLoCount = Int
 
@@ -132,6 +132,67 @@ hiLoTotal = reduce' . map'
   where map'    = map hiLoValue
         reduce' = sum
 
-main = do
-  n <- liftM (hiLoTotal . take 1000000) $ randInfShuffle (multiDeck 6)
-  putStrLn $ show n
+--main = do
+--  n <- liftM (hiLoTotal . take 1000000) $ randInfShuffle (multiDeck 6)
+--  putStrLn $ show n
+
+data Game = Game DealerHand [Hand]
+  deriving (Show)
+
+deal' :: Int -> State Deck [Card]
+deal' n = get >>= \d -> (put $ drop n d) >> (return $ take n d)
+
+deal :: State Deck Card
+deal = liftM head $ deal' 1
+
+newGame :: State Deck Game
+newGame = do
+  [d_holeCard, p_firstCard, d_upCard, p_secondCard] <- deal' 4
+  dealer <- return $ DealerHand d_holeCard [d_upCard]
+  player <- return $ [p_firstCard, p_secondCard]
+  return $ Game dealer [player]
+
+newGame' :: Int -> State Deck Game
+newGame' n = do
+  roundOne <- deal' n
+  roundTwo <- deal' n
+  dealer   <- return $ DealerHand (head roundOne) [(head roundTwo)]
+  players  <- return $ zipWith (\a b -> [a,b]) (tail roundOne) (tail roundTwo)
+  return $ Game dealer players
+
+data Action = Hit
+            | Stand
+            | Double
+            | Split
+            | Surrender
+
+-- Hit Soft 17
+dealerStrategy :: Hand -> Action
+dealerStrategy h = case (handTotal h) of
+  HandValue Bust _  -> Stand
+  HandValue Soft 18 -> Stand
+  HandValue Soft 19 -> Stand
+  HandValue Soft 20 -> Stand
+  HandValue Soft 21 -> Stand
+  HandValue Soft _  -> Hit
+  HandValue Hard 17 -> Stand
+  HandValue Hard 18 -> Stand
+  HandValue Hard 19 -> Stand
+  HandValue Hard 20 -> Stand
+  HandValue Hard 21 -> Stand
+  HandValue Hard _  -> Hit
+
+doHit :: Hand -> State Deck [Hand]
+doHit h = deal >>= (\c -> return $ [h ++ [c]])
+
+doStand :: Hand -> State Deck [Hand]
+doStand h = return $ [h]
+
+--doDouble :: Hand -> State Deck [Hand]
+--doDouble h = 
+
+play :: Action -> Hand -> State Deck [Hand]
+play a = case a of
+  Hit -> doHit
+
+--play :: Game -> State Deck Game
