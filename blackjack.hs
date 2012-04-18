@@ -149,6 +149,7 @@ doSplit _ = undefined
 
 -- Identical to stand for now, might change somehow once bets are tracked
 doSurrender :: Hand -> State Deck [Hand]
+doSurrender = doStand
 
 
 play :: Action -> Hand -> State Deck [Hand]
