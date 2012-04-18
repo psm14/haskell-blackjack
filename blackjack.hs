@@ -104,32 +104,10 @@ hand' cs = Hand (checkDone $ handTotal cs) cs
   where checkDone (HandValue Bust _) = Done
         checkDone _                  = Play
 
-
-type HiLoCount = Int
-
-hiLoValue :: Card -> HiLoCount
-hiLoValue n = case n of
-  Card Two _   -> -1
-  Card Three _ -> -1
-  Card Four _  -> -1
-  Card Five _  -> -1
-  Card Six _   -> -1
-  Card Seven _ -> 0
-  Card Eight _ -> 0
-  Card Nine _  -> 0
-  Card Ten _   -> 1
-  Card Jack _  -> 1
-  Card Queen _ -> 1
-  Card King _  -> 1
-  Card Ace _   -> 1
-
-hiLoTotal :: [Card] -> HiLoCount
-hiLoTotal = reduce' . map'
-  where map'    = map hiLoValue
-        reduce' = sum
-
 data Game = Game Hand [Hand]
-  deriving (Show)
+
+instance Show Game where
+  show (Game h hs) = "Game " ++ (show h) ++ " " ++ (show hs)
 
 deal' :: Int -> State Deck [Card]
 deal' n = get >>= \d -> (put $ drop n d) >> (return $ take n d)
@@ -140,7 +118,7 @@ deal = liftM head $ deal' 1
 newGame :: State Deck Game
 newGame = do
   [d_holeCard, p_firstCard, d_upCard, p_secondCard] <- deal' 4
-  dealer <- return $ hand' [d_holeCard,d_upCard]
+  dealer <- return $ hand' [d_holeCard,  d_upCard]
   player <- return $ hand' [p_firstCard, p_secondCard]
   return $ Game dealer [player]
 
@@ -169,6 +147,17 @@ doSplit (Hand Play [one, two]) = do
   return $ [hand' [one, one'], hand' [two, two']]
 doSplit _ = undefined
 
+play :: Action -> Hand -> State Deck [Hand]
+play a h = case a of
+  Hit    -> doHit h
+  Stand  -> doStand h
+  Double -> doDouble h
+  Split  -> doSplit h
+
+-- Dealer play (Assume only hit or stand)
+play' :: Action -> Hand -> State Deck Hand
+play' a h = (play a h) >>= \hs -> return $ head hs
+
 data Action = Hit
             | Stand
             | Double
@@ -191,8 +180,31 @@ dealerStrategy h = case (handTotal' h) of
   HandValue Hard 21 -> Stand
   HandValue Hard _  -> Hit
 
---play :: Action -> Hand -> State Deck [Hand]
---play a = case a of
---  Hit -> doHit
+playDealer :: (Hand -> Action) -> Game -> State Deck Game
+playDealer _ (Game (Hand Done h) hs) = return $ Game (Hand Done h) hs
+playDealer strat (Game hand hs) = do
+  hand' <- play' (strat hand) hand
+  playDealer strat (Game hand' hs)
 
---play :: Game -> State Deck Game
+type HiLoCount = Int
+
+hiLoValue :: Card -> HiLoCount
+hiLoValue n = case n of
+  Card Two _   -> -1
+  Card Three _ -> -1
+  Card Four _  -> -1
+  Card Five _  -> -1
+  Card Six _   -> -1
+  Card Seven _ -> 0
+  Card Eight _ -> 0
+  Card Nine _  -> 0
+  Card Ten _   -> 1
+  Card Jack _  -> 1
+  Card Queen _ -> 1
+  Card King _  -> 1
+  Card Ace _   -> 1
+
+hiLoTotal :: [Card] -> HiLoCount
+hiLoTotal = reduce' . map'
+  where map'    = map hiLoValue
+        reduce' = sum
