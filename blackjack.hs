@@ -147,6 +147,10 @@ doSplit (Hand Play [one, two]) = do
   return $ [hand' [one, one'], hand' [two, two']]
 doSplit _ = undefined
 
+-- Identical to stand for now, might change somehow once bets are tracked
+doSurrender :: Hand -> State Deck [Hand]
+
+
 play :: Action -> Hand -> State Deck [Hand]
 play a h = case a of
   Hit    -> doHit h
@@ -190,19 +194,19 @@ type HiLoCount = Int
 
 hiLoValue :: Card -> HiLoCount
 hiLoValue n = case n of
-  Card Two _   -> -1
-  Card Three _ -> -1
-  Card Four _  -> -1
-  Card Five _  -> -1
-  Card Six _   -> -1
+  Card Two _   -> 1
+  Card Three _ -> 1
+  Card Four _  -> 1
+  Card Five _  -> 1
+  Card Six _   -> 1
   Card Seven _ -> 0
   Card Eight _ -> 0
   Card Nine _  -> 0
-  Card Ten _   -> 1
-  Card Jack _  -> 1
-  Card Queen _ -> 1
-  Card King _  -> 1
-  Card Ace _   -> 1
+  Card Ten _   -> -1
+  Card Jack _  -> -1
+  Card Queen _ -> -1
+  Card King _  -> -1
+  Card Ace _   -> -1
 
 hiLoTotal :: [Card] -> HiLoCount
 hiLoTotal = reduce' . map'
