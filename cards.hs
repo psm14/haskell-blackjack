@@ -46,7 +46,7 @@ infiniteDeck (Deck d) = Deck $ concat decks
    where decks = d : decks
 
 infiniteShuffler :: RandomGen g => Deck -> g -> Deck
-infiniteShuffler (Deck d) g = Deck $ concat $ decks g
+infiniteShuffler (Deck d) g = Deck . concat $ decks g
        where decks g = d : decks g'
              g'      = snd $ split g
 
