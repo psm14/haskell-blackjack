@@ -153,7 +153,6 @@ doSplit _ = undefined
 doSurrender :: Hand -> State Deck [Hand]
 doSurrender = doStand
 
-
 play :: Action -> Hand -> State Deck [Hand]
 play a h = case a of
   Hit    -> doHit h
@@ -198,6 +197,15 @@ playStep :: (Hand -> Action) -> Hand -> State Deck [Hand]
 playStep strat (Hand Done h) = return [Hand Done h]
 playStep strat h = play (strat h) h
 
+playHand :: (Hand -> Action) -> Hand -> State Deck [Hand]
+playHand strat h = let
+  step = playStep strat
+  in if (handDone h == True) then
+    return $ [h]
+  else do
+    res <- step h
+    sheet (playHand strat) res
+
 allPlayersDone :: [Hand] -> Bool
 allPlayersDone = all handDone 
 
@@ -212,7 +220,7 @@ sheet f hs = let
 
 playPlayers :: (Hand -> Action) -> Game -> State Deck Game
 playPlayers strat (Game d hs) = if (allPlayersDone hs == False) then do 
-                                  hs' <- sheet (playStep strat) hs
+                                  hs' <- sheet (playHand strat) hs
                                   playPlayers strat (Game d hs')
                                 else 
                                   return $ Game d hs
@@ -229,20 +237,9 @@ allTotals (Game d hs) = let
   ptot = fmap handTotal' hs
   in (dtot, ptot)
 
---main :: IO ()
---main = do
---  deck <- randShuffle $ multiDeck 6
---  (game, _) <- return $ runState (dealAndPlay 10 dealerStrategy) deck
---  putStrLn $ show game
---  putStrLn . show $ allTotals game
 
 hiLoAdd :: Card -> HiLoCount -> HiLoCount
 hiLoAdd c a = a + (hiLoValue c)
-
-main :: IO ()
-main = do
-  deck <- randInfShuffle (multiDeck 6)
-  putStrLn $ show (hiLoTotal' (take 10000000 deck)) 
 
 
 type HiLoCount = Int
