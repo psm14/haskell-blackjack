@@ -29,9 +29,8 @@ type Deck = [Card]
 stdDeck :: Deck
 stdDeck = [Card r s | r <- [Ace .. King], s <- [Clubs .. Diamonds]]
 
-multiDeck :: Int -> Deck
-multiDeck 0 = []
-multiDeck n = stdDeck ++ multiDeck (n-1)
+multiDeck :: Int -> Deck -> Deck
+multiDeck n = concat . replicate n
 
 shuffle :: RandomGen g => Deck -> g -> Deck
 shuffle d g = shuffle' d (length d) g
