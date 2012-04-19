@@ -1,114 +1,11 @@
-import System.Random.Shuffle (shuffle')
-import System.Random (RandomGen, newStdGen, split)
-import Data.Monoid
-import Data.List
+module Blackjack where
+
 import Control.Monad.Identity
 import Control.Monad.Trans
 import Control.Monad.State
 
-data Suit = Clubs
-          | Hearts
-          | Spades
-          | Diamonds
-     deriving (Show, Read, Eq, Ord, Enum)
-
-data Rank = Ace
-          | Two
-          | Three
-          | Four
-          | Five
-          | Six
-          | Seven
-          | Eight
-          | Nine
-          | Ten
-          | Jack
-          | Queen
-          | King
-     deriving (Show, Read, Eq, Ord, Enum)
-
-data Card = Card Rank Suit
-     deriving (Show, Read, Eq, Ord)
-
-type Deck = [Card]
-
-stdDeck :: Deck
-stdDeck = [Card r s | r <- [Ace .. King], s <- [Clubs .. Diamonds]]
-
-multiDeck :: Int -> Deck
-multiDeck 0 = []
-multiDeck n = stdDeck ++ multiDeck (n-1)
-
-shuffle :: RandomGen gen => Deck -> gen -> Deck
-shuffle deck gen = shuffle' deck (length deck) gen
-
-randShuffle :: Deck -> IO Deck
-randShuffle deck = newStdGen >>= doShuffle deck
-  where doShuffle deck gen = return $ shuffle deck gen
-
-infiniteDeck :: RandomGen gen => Deck -> gen -> Deck
-infiniteDeck deck gen = concat $ repeatingDecks deck gen
-  where repeatingDecks deck gen = (shuffle deck gen) : (repeatingDecks deck (snd $ split gen))
---infiniteDeck deck gen = (shuffle deck gen) ++ (infiniteDeck deck gen)
-
-randInfShuffle :: Deck -> IO Deck
-randInfShuffle deck = newStdGen >>= doShuffle deck
-  where doShuffle deck gen = return $ infiniteDeck deck gen
-
-data HandStatus = Play
-                | Done
-     deriving (Show)
-
-data Hand = Hand HandStatus [Card]
-     deriving (Show)
-
-data HandType = Hard
-              | Soft
-              | Bust
-     deriving (Show, Read, Eq)
-
-data HandValue = HandValue HandType Int
-     deriving (Show, Read, Eq)
-
--- Note that this only is well-defined for hand values that are valid in BlackJack (i.e Using a Soft 2 or a Bust 10 will have strange behavior)
-instance Monoid HandValue where
-  mempty  = HandValue Hard 0
-  mappend (HandValue Soft m) (HandValue t n)    = if (m+n <= 21) then HandValue Soft (m+n) else mappend (HandValue Hard (m-10)) (HandValue t n) 
-  mappend (HandValue t m) (HandValue Soft n)    = mappend (HandValue Soft n) (HandValue t m)
-  mappend (HandValue Hard m) (HandValue Hard n) = if (m+n <= 21) then HandValue Hard (m+n) else HandValue Bust (m+n)
-  mappend (HandValue t m) (HandValue u n)       = HandValue Bust (m+n)
-
-cardTotal :: Card -> HandValue
-cardTotal n = case n of
-  Card Two _   -> HandValue Hard 2
-  Card Three _ -> HandValue Hard 3
-  Card Four _  -> HandValue Hard 4
-  Card Five _  -> HandValue Hard 5
-  Card Six _   -> HandValue Hard 6
-  Card Seven _ -> HandValue Hard 7
-  Card Eight _ -> HandValue Hard 8
-  Card Nine _  -> HandValue Hard 9
-  Card Ten _   -> HandValue Hard 10
-  Card Jack _  -> HandValue Hard 10
-  Card Queen _ -> HandValue Hard 10
-  Card King _  -> HandValue Hard 10
-  Card Ace _   -> HandValue Soft 11
-
-
-handTotal :: [Card] -> HandValue
-handTotal = mconcat . (map cardTotal)
-
-handTotal' :: Hand -> HandValue
-handTotal' (Hand _ cs) = handTotal cs
-
-hand' :: [Card] -> Hand
-hand' cs = Hand (checkDone $ handTotal cs) cs
-  where checkDone (HandValue Bust _) = Done
-        checkDone _                  = Play
-
-handDone :: Hand -> Bool
-handDone (Hand Done _) = True
-handDone _             = False
+import Cards
+import Hands
 
 data Game = Game Hand [Hand]
 
@@ -116,7 +13,9 @@ instance Show Game where
   show (Game h hs) = "Game " ++ (show h) ++ " " ++ (show hs)
 
 deal' :: Int -> State Deck [Card]
-deal' n = get >>= \d -> (put $ drop n d) >> (return $ take n d)
+deal' n = get >>= \d -> put (remain d) >> return (dealt d)
+  where dealt  d = take n d
+        remain d = drop n d
 
 deal :: State Deck Card
 deal = liftM head $ deal' 1
@@ -236,37 +135,3 @@ allTotals (Game d hs) = let
   dtot = handTotal' d
   ptot = fmap handTotal' hs
   in (dtot, ptot)
-
-
-hiLoAdd :: Card -> HiLoCount -> HiLoCount
-hiLoAdd c a = a + (hiLoValue c)
-
-
-type HiLoCount = Int
-
-hiLoValue :: Card -> HiLoCount
-hiLoValue n = case n of
-  Card Two _   -> 1
-  Card Three _ -> 1
-  Card Four _  -> 1
-  Card Five _  -> 1
-  Card Six _   -> 1
-  Card Seven _ -> 0
-  Card Eight _ -> 0
-  Card Nine _  -> 0
-  Card Ten _   -> -1
-  Card Jack _  -> -1
-  Card Queen _ -> -1
-  Card King _  -> -1
-  Card Ace _   -> -1
-
-hiLoSum :: HiLoCount -> Card -> HiLoCount
-hiLoSum a b = a + (hiLoValue b)
-
-hiLoTotal' :: [Card] -> HiLoCount
-hiLoTotal' cs = foldl' hiLoSum 0 cs 
-
-hiLoTotal :: [Card] -> HiLoCount
-hiLoTotal = reduce' . map'
-  where map'    = map hiLoValue
-        reduce' = sum
