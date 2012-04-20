@@ -1,4 +1,9 @@
-module HiLoCount where
+module HiLoCount 
+( HiLoDeck
+, hiLoDeck
+, runningCount
+, trueCount
+) where
 
 import Data.List
 
@@ -48,6 +53,9 @@ instance Deck HiLoDeck where
 hiLoDeck :: StdDeck -> HiLoDeck
 hiLoDeck d = HiLoDeck d 0
 
+runningCount :: HiLoDeck -> Int
+runningCount (HiLoDeck _ c) = c
+
 trueCount :: HiLoDeck -> Double
-trueCount (HiLoDeck d c) = (fromIntegral c) / remain'
-  where remain' = (fromIntegral $ remain d) / 52
+trueCount (HiLoDeck d c) = (fromIntegral c) / decksRemain
+       where decksRemain = (fromIntegral $ remain d) / 52
