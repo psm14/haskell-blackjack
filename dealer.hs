@@ -24,7 +24,7 @@ data DealerAction = Hit | Stand
 type DealerStrategy = Hand -> DealerAction
 
 hitS17 :: DealerStrategy
-hitS17 h = act (handTotal h)
+hitS17 = act . handTotal
   where act (HandValue Bust _)           = Stand
         act (HandValue Soft n) | n <  18 = Hit
                                | n >= 18 = Stand
@@ -32,7 +32,7 @@ hitS17 h = act (handTotal h)
                                | n >= 17 = Stand
 
 standS17 :: DealerStrategy
-standS17 h = act (handTotal h)
+standS17 = act . handTotal
   where act (HandValue Bust _)           = Stand
         act (HandValue _    n) | n <  18 = Hit
                                | n >= 18 = Stand

@@ -12,14 +12,6 @@ data Game = Game Hand [Hand]
 instance Show Game where
   show (Game h hs) = "Game " ++ (show h) ++ " " ++ (show hs)
 
-deal' :: Int -> State Deck [Card]
-deal' n = get >>= \d -> put (remain d) >> return (dealt d)
-  where dealt  d = take n d
-        remain d = drop n d
-
-deal :: State Deck Card
-deal = liftM head $ deal' 1
-
 newGame' :: Int -> State Deck Game
 newGame' n = do
   roundOne <- deal' (n+1)
@@ -68,22 +60,6 @@ data Action = Hit
             | Double
             | Split
             | Surrender
-
--- Hit Soft 17
-dealerStrategy :: Hand -> Action
-dealerStrategy h = case (handTotal' h) of
-  HandValue Bust _  -> Stand
-  HandValue Soft 18 -> Stand
-  HandValue Soft 19 -> Stand
-  HandValue Soft 20 -> Stand
-  HandValue Soft 21 -> Stand
-  HandValue Soft _  -> Hit
-  HandValue Hard 17 -> Stand
-  HandValue Hard 18 -> Stand
-  HandValue Hard 19 -> Stand
-  HandValue Hard 20 -> Stand
-  HandValue Hard 21 -> Stand
-  HandValue Hard _  -> Hit
 
 playDealer :: (Hand -> Action) -> Game -> State Deck Game
 playDealer _ (Game (Hand Done h) hs) = return $ Game (Hand Done h) hs
