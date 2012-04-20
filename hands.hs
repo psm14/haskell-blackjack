@@ -1,9 +1,12 @@
 module Hands
-( Hand(..)
+( Hand
+, DealerHand(..)
 , HandStatus(..)
 , HandType(..)
 , HandValue(..)
-, cardValue
+, hand
+, handTotal
+, handDone
 ) where
 
 import Data.Monoid
@@ -12,6 +15,11 @@ import Cards
 
 data Hand = Hand HandStatus [Card]
      deriving (Show)
+
+data DealerHand = DealerHand DownCard Card
+
+instance Show DealerHand where
+  show (DealerHand _ c) = "DealerHand " ++ show c
 
 data HandStatus = Play
                 | Done

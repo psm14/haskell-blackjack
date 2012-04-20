@@ -31,3 +31,33 @@ hiLoTotal' cs = foldl' hiLoSum 0 cs
 
 hiLoTotal :: [Card] -> HiLoCount
 hiLoTotal = sum . map hiLoValue
+
+-- Wrap a standard deck and track the Hi-Lo count as cards are dealed off of it
+data HiLoDeck = HiLoDeck StdDeck HiLoCount
+
+instance Show HiLoDeck where
+  show (HiLoDeck d c) = "HiLoDeck (RC: " ++ show c ++ ", TC: " ++ (show $ trueCount (HiLoDeck d c)) ++ ")"
+
+instance Deck HiLoDeck where
+  deal (HiLoDeck d n) = let
+    (c, d') = deal d
+    n'      = hiLoSum n c
+    in (c, HiLoDeck d' n')
+
+  dealDown (HiLoDeck d n) = let
+    (c, d') = dealDown d
+    in (c, HiLoDeck d' n)
+
+  turn (HiLoDeck d n) c = let
+    (c', d') = turn d c
+    n'       = hiLoSum n c'
+    in (c', HiLoDeck d' n')
+
+  remain (HiLoDeck d _) = remain d
+
+hiLoDeck :: StdDeck -> HiLoDeck
+hiLoDeck d = HiLoDeck d 0
+
+trueCount :: HiLoDeck -> Double
+trueCount (HiLoDeck d c) = (fromIntegral c) / remain'
+  where remain' = (fromIntegral $ remain d) / 52
