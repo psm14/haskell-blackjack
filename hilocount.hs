@@ -28,12 +28,12 @@ hiLoTotal :: [Card] -> HiLoCount
 hiLoTotal = sum . map hiLoValue
 
 -- Wrap a standard deck and track the Hi-Lo count as cards are dealed off of it
-data HiLoDeck = HiLoDeck StdDeck HiLoCount
+data (Deck d) => HiLoDeck d = HiLoDeck d HiLoCount
 
-instance Show HiLoDeck where
-  show (HiLoDeck d c) = "HiLoDeck (RC: " ++ show c ++ ", TC: " ++ (show $ trueCount (HiLoDeck d c)) ++ ")"
+instance (Deck d, Show d) => Show (HiLoDeck d) where
+  show (HiLoDeck d c) = show d ++ " (RC: " ++ show c ++ ", TC: " ++ (show $ trueCount (HiLoDeck d c)) ++ ")"
 
-instance Deck HiLoDeck where
+instance (Deck d) => Deck (HiLoDeck d) where
   deal (HiLoDeck d n) = let
     (c, d') = deal d
     n'      = hiLoSum n c
@@ -55,12 +55,12 @@ instance Deck HiLoDeck where
 
   remain (HiLoDeck d _) = remain d
 
-hiLoDeck :: StdDeck -> HiLoDeck
+hiLoDeck :: Deck d => d -> HiLoDeck d
 hiLoDeck d = HiLoDeck d 0
 
-runningCount :: HiLoDeck -> Int
+runningCount :: Deck d => HiLoDeck d -> Int
 runningCount (HiLoDeck _ c) = c
 
-trueCount :: HiLoDeck -> Double
+trueCount :: Deck d => HiLoDeck d -> Double
 trueCount (HiLoDeck d c) = (fromIntegral c) / decksRemain
        where decksRemain = (fromIntegral $ remain d) / 52
