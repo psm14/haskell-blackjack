@@ -21,13 +21,10 @@ data DealerHand = DealerHand DownCard Card
 instance Show DealerHand where
   show (DealerHand _ c) = "DealerHand " ++ show c
 
-data HandStatus = Play
-                | Done
+data HandStatus = Play | Done
      deriving (Show)
 
-data HandType = Hard
-              | Soft
-              | Bust
+data HandType = Hard | Soft | Bust
      deriving (Show, Eq)
 
 data HandValue = HandValue HandType Int

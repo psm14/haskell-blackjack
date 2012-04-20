@@ -3,6 +3,8 @@ module Cards
 , multiDeck
 , shuffle
 , shuffleIO
+, aceInTheHole
+, tenInTheHole
 , Card(..)
 , DownCard(..)
 , Suit(..)
@@ -101,3 +103,15 @@ shuffle (Deck d) g = Deck $ shuffle' d (length d) g
 
 shuffleIO :: StdDeck -> IO StdDeck
 shuffleIO d = liftM (shuffle d) newStdGen
+
+-- Legal ways to peek at the downcard
+-- Make sure to 'turn' it still
+aceInTheHole :: DownCard -> Bool
+aceInTheHole (DownCard c)  = isAce c
+  where isAce (Card Ace _) = True
+        isAce _            = False
+
+tenInTheHole :: DownCard -> Bool
+tenInTheHole (DownCard c) = isTen c
+  where isTen (Card r _)  | r >= Ten  = True
+                          | otherwise = False

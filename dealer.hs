@@ -17,6 +17,15 @@ dealDealer d = let
 dealDealerS :: Deck d => State d DealerHand
 dealDealerS = liftS dealDealer
 
+revealHoleCard :: Deck d => DealerHand -> d -> (Hand, d)
+revealHoleCard (DealerHand a b) d = let
+  (a', d') = turn a d
+  h        = hand [a', b]
+  in (h, d)
+
+revealHoleCardS :: Deck d => DealerHand -> State d Hand
+revealHoleCardS = liftS . revealHoleCard
+
 -- Dealer only hits or stands
 data DealerAction = Hit | Stand
 
@@ -36,3 +45,9 @@ standS17 = act . handTotal
   where act (HandValue Bust _)           = Stand
         act (HandValue _    n) | n <  18 = Hit
                                | n >= 18 = Stand
+
+offerInsurance :: DealerHand -> Bool
+offerInsurance (DealerHand _ c) = isTen c
+         where isTen (Card r _) | r == Ace  = False
+                                | r >= Ten  = True
+                                | otherwise = False
