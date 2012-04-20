@@ -38,8 +38,8 @@ instance Deck HiLoDeck where
     (c, d') = dealDown d
     in (c, HiLoDeck d' n)
 
-  turn (HiLoDeck d n) c = let
-    (c', d') = turn d c
+  turn c (HiLoDeck d n) = let
+    (c', d') = turn c d
     n'       = hiLoSum n c'
     in (c', HiLoDeck d' n')
 

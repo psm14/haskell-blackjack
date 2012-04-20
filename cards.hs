@@ -36,6 +36,7 @@ instance Show StdDeck where
 -- deal: Deal card off top of deck and update count if needed
 -- dealDown: Deal card "face down" (card isn't counted)
 -- turn: "Turn over" the down card and thus update the count on the passed in deck
+-- remain: Cards remaining in deck, needed for true count
 
 -- The following have default implementations:
 -- deal': Deal n cards off deck and update card
@@ -44,7 +45,7 @@ instance Show StdDeck where
 class Deck d where
   deal     :: Deck d => d -> (Card, d)
   dealDown :: Deck d => d -> (DownCard, d)
-  turn     :: Deck d => d -> DownCard -> (Card, d)
+  turn     :: Deck d => DownCard -> d -> (Card, d)
   remain   :: Deck d => d -> Int
 
   -- Optional
@@ -59,7 +60,7 @@ class Deck d where
 
   -- Derived
   liftS    :: Deck d => (d -> (a, d)) -> State d a
-  liftS f =  state $ \d -> f d
+  liftS f = state $ \d -> f d
 
   dealS    :: Deck d => State d Card
   dealS  = liftS deal
@@ -81,7 +82,7 @@ instance Deck StdDeck where
      where card = DownCard $ head d
            rest = Deck     $ tail d
 
-  turn d (DownCard c) = (c, d)
+  turn (DownCard c) d = (c, d)
 
   remain (Deck d) = length d
 
