@@ -60,7 +60,7 @@ class Deck d where
 
   -- Derived
   liftS    :: Deck d => (d -> (a, d)) -> State d a
-  liftS f = state $ \d -> f d
+  liftS  = state
 
   dealS    :: Deck d => State d Card
   dealS  = liftS deal
