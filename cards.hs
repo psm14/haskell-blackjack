@@ -78,6 +78,10 @@ instance Deck StdDeck where
      where card = head d
            rest = Deck $ tail d
 
+  deal' n (Deck d) = (cards, rest)
+       where cards = take n d
+             rest  = Deck $ drop n d
+
   dealDown (Deck d) = (card, rest)
      where card = DownCard $ head d
            rest = Deck     $ tail d

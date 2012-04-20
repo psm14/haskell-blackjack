@@ -39,6 +39,11 @@ instance Deck HiLoDeck where
     n'      = hiLoSum n c
     in (c, HiLoDeck d' n')
 
+  deal' n (HiLoDeck d m) = let
+    (cs, d') = deal' n d
+    m'       = hiLoTotal cs
+    in (cs, HiLoDeck d' m')
+
   dealDown (HiLoDeck d n) = let
     (c, d') = dealDown d
     in (c, HiLoDeck d' n)
