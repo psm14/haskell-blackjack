@@ -19,7 +19,7 @@ import Control.Monad.State
 data Suit = Clubs | Hearts | Spades | Diamonds
      deriving (Show, Read, Eq, Ord, Enum)
 
-data Rank = Ace | Two | Three | Four | Five | Six | Seven | Eight | Nine | Ten | Jack | Queen | King
+data Rank = Two | Three | Four | Five | Six | Seven | Eight | Nine | Ten | Jack | Queen | King | Ace
      deriving (Show, Read, Eq, Ord, Enum)
 
 data Card = Card Rank Suit
@@ -86,7 +86,7 @@ instance Deck StdDeck where
   remain (Deck d) = length d
 
 stdDeck :: StdDeck
-stdDeck = Deck [Card r s | r <- [Ace .. King], s <- [Clubs .. Diamonds]]
+stdDeck = Deck [Card r s | r <- [Two .. Ace], s <- [Clubs .. Diamonds]]
 
 multiDeck :: Int -> StdDeck -> StdDeck
 multiDeck n (Deck d) = Deck . concat . replicate n $ d
